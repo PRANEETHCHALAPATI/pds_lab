@@ -1,123 +1,72 @@
-#include<stdio.h>
-#include<sys/time.h>
-#define N 6
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <cuda_runtime.h>
 
-double cpusecond() {
+#define N 3 // 3x3 matrix
 
-	struct timeval tp;
-	gettimeofday(&tp,NULL);
-	return ((double)tp.tv_sec + (double)tp.tv_usec*1.e-6);
-}
+__global__ void transposer(int *input, int *output, int width) { 
+    __shared__ int tile[N][N]; // Shared memory tile for 3x3
 
-__global__ void transposer(int* input,int* output,int width) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-	__shared__ int tile[N][N];
+    if (idx < width * width) { // Prevent out-of-bounds
+        int row = idx / width;  // Convert 1D thread index -> 2D coords
+        int col = idx % width;
 
-	int idx = blockIdx.x * blockDim.x + threadIdx.x;
-	
-	if(idx < width * width) {
-		
-		int row = idx/width;
-		int col = idx % width;
-		
-		tile[col][row] = input[row*width + col];
-		
-		__syncthreads();
-		
-		output[idx] = tile[row][col];
-	}
+        // Load into shared memory (transposed)
+        tile[col][row] = input[row * width + col];
+
+        __syncthreads(); // Wait for all threads
+
+        // Write back transposed value
+        output[idx] = tile[row][col];
+    }
 }
 
 int main() {
-	
-	int size = N * N * sizeof(int);
-	int h_input[N*N],h_output[N*N];
-	
-	srand(time(NULL));
-	for (int i=0; i<N*N; i++) {
+    int size = N * N * sizeof(int);
+    int h_input[N * N], h_output[N * N];
 
-		h_input[i] = rand() % 100;
-	}
+    // Generate random input matrix
+    srand(time(NULL));
+    for (int i = 0; i < N * N; i++) {
+        h_input[i] = rand() % 100;
+    }
 
-	int *d_output,*d_input;
-	cudaMalloc(&d_input,size);
-	cudaMalloc(&d_output,size);
-	
-	cudaMemcpy(d_input,h_input,size,cudaMemcpyHostToDevice);
-	
-	int threadsPerBlock = N*N;
-	int blocksPerGrid = (N*N + threadsPerBlock-1)/threadsPerBlock;
-	double start_time = cpusecond();
-	transposer<<<blocksPerGrid,threadsPerBlock>>>(d_input,d_output,N);
-	cudaDeviceSynchronize();
-	double end_time = cpusecond();
-	cudaMemcpy(h_output,d_output,size,cudaMemcpyDeviceToHost);
-	printf("Original Matrix : \n");
-	for (int i=0; i<N; i++) {
+    int *d_input, *d_output;
+    cudaMalloc(&d_input, size);
+    cudaMalloc(&d_output, size);
 
-		for (int j=0; j<N; j++) {
+    cudaMemcpy(d_input, h_input, size, cudaMemcpyHostToDevice);
 
-			printf("%d\t",h_input[i*N+j]);
-		}
-		printf("\n\n");
-	}
-	
-	printf("Transposed Matrix : \n");
-	for (int i=0; i<N; i++) {
+    int threadsPerBlock = 256;
+    int blocksPerGrid = (N * N + threadsPerBlock - 1) / threadsPerBlock;
 
-		for (int j=0; j<N; j++) {
+    transposer<<<blocksPerGrid, threadsPerBlock>>>(d_input, d_output, N);
 
-			printf("%d\t",h_output[i*N+j]);
-		}
-		printf("\n\n");
-	}
+    cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost);
 
-	printf("GPU elapsed time : %fseconds\n",end_time-start_time);
-	cudaFree(d_input);
-	cudaFree(d_output);
+    // Display original matrix
+    printf("Original Matrix:\n");
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            printf("%2d ", h_input[i * N + j]);
+        }
+        printf("\n");
+    }
 
-	return 0;
+    // Display transposed matrix
+    printf("\nTransposed Matrix:\n");
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            printf("%2d ", h_output[i * N + j]);
+        }
+        printf("\n");
+    }
+
+    cudaFree(d_input);
+    cudaFree(d_output);
+
+    return 0;
 }
-
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
