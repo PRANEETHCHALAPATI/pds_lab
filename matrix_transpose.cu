@@ -1,9 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include<sys/time.h>
 #include <cuda_runtime.h>
 
 #define N 3 // 3x3 matrix
+double cpusecond() {
+    struct timeval tp;
+    gettimeofday(&tp, NULL);
+    return ((double)tp.tv_sec + (double)tp.tv_usec * 1.e-6);
+}
 
 __global__ void transposer(int *input, int *output, int width) { 
     __shared__ int tile[N][N]; // Shared memory tile for 3x3
@@ -42,8 +48,12 @@ int main() {
 
     int threadsPerBlock = 256;
     int blocksPerGrid = (N * N + threadsPerBlock - 1) / threadsPerBlock;
+    
+    double s = cpusecond();
 
     transposer<<<blocksPerGrid, threadsPerBlock>>>(d_input, d_output, N);
+    
+    double e = cpusecond();
 
     cudaMemcpy(h_output, d_output, size, cudaMemcpyDeviceToHost);
 
@@ -64,6 +74,8 @@ int main() {
         }
         printf("\n");
     }
+    
+    printf("gpu computation time: %f\n",e-s);
 
     cudaFree(d_input);
     cudaFree(d_output);

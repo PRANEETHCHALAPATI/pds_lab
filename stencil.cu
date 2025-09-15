@@ -1,8 +1,15 @@
 #include <stdio.h>
 #include <cuda_runtime.h>
+#include<sys/time.h>
 
 #define N 8
 #define RADIUS 1
+
+double cpusecond() {
+    struct timeval tp;
+    gettimeofday(&tp, NULL);
+    return ((double)tp.tv_sec + (double)tp.tv_usec * 1.e-6);
+}
 
 // Constant memory for stencil weights
 __constant__ int d_weights[2 * RADIUS + 1]; // window size = 2*RADIUS + 1 = 3
@@ -43,8 +50,9 @@ int main() {
     cudaMemcpy(d_in, h_in, N * sizeof(int), cudaMemcpyHostToDevice);
 
     // Launch kernel with 1 block of N threads
+    double s = cpusecond();
     stencil1D<<<1, N>>>(d_in, d_out);
-
+   double e = cpusecond();
     // Copy result back
     cudaMemcpy(h_out, d_out, N * sizeof(int), cudaMemcpyDeviceToHost);
 
@@ -54,7 +62,7 @@ int main() {
     printf("\nOutput: ");
     for (int i = 0; i < N; i++) printf("%d ", h_out[i]);
     printf("\n");
-
+printf("gpu computation time: %f\n",e-s);
     // Free memory
     cudaFree(d_in);
     cudaFree(d_out);
