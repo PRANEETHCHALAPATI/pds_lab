@@ -8,6 +8,7 @@ int main(int argc, char *argv[]) {
     int rank, size;
     int leader, recv_rank;
     MPI_Status status;
+    int i;
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -34,7 +35,7 @@ int main(int argc, char *argv[]) {
         leader = highest_rank;
         printf("Process %d announces new leader: %d\n", rank, leader);
 
-        for (int i = 1; i < size; i++)
+        for (i = 1; i < size; i++)
             MPI_Send(&leader, 1, MPI_INT, i, TAG_LEADER, MPI_COMM_WORLD);
     }
     else {
@@ -51,3 +52,4 @@ int main(int argc, char *argv[]) {
 
     MPI_Finalize();
     return 0;
+}

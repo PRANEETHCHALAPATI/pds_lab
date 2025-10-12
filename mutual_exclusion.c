@@ -13,6 +13,7 @@ int timestamp = 0;
 int reply_count = 0;
 bool requesting_cs = false;
 bool in_cs = false;
+int i;
 
 int num_processes, rank;
 int deferred[MAX_PROCESSES] = {0};
@@ -29,7 +30,7 @@ void send_request() {
     timestamp++;
     requesting_cs = true;
     reply_count = 0;
-    for (int i = 0; i < num_processes; i++) {
+    for (i = 0; i < num_processes; i++) {
         if (i != rank) {
             MPI_Send(&timestamp, 1, MPI_INT, i, REQUEST, MPI_COMM_WORLD);
             printf("Process %d -> Sent REQUEST to %d (timestamp %d)\n", rank, i, timestamp);
@@ -47,7 +48,7 @@ void enter_cs() {
     requesting_cs = false;
 
     // Send deferred replies
-    for (int i = 0; i < num_processes; i++) {
+    for (i = 0; i < num_processes; i++) {
         if (deferred[i]) {
             deferred[i] = 0;
             MPI_Send(&timestamp, 1, MPI_INT, i, REPLY, MPI_COMM_WORLD);

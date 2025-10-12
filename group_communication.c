@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
     int recv_scatter;
     int gather_data[4];
     int reduce_result;
-
+    int i;
    
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
     MPI_Gather(&recv_scatter, 1, MPI_INT, gather_data, 1, MPI_INT, 0, MPI_COMM_WORLD);
     if (rank == 0) {
         printf("Root process gathered data: ");
-        for (int i = 0; i < size; i++) {
+        for (i = 0; i < size; i++) {
             printf("%d ", gather_data[i]);
         }
         printf("\n");
