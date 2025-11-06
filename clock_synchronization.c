@@ -23,15 +23,14 @@ int main(int argc,char** argv){
     MPI_Barrier(MPI_COMM_WORLD);
 
     
-    char buf[256];
-    snprintf(buf, sizeof(buf), "Process %d local time (before): %ld (offset %d)\n",
-             rank, (long)local_time, offset);
-    fputs(buf, stdout);
+    printf("Process %d local time (before): %ld (offset %d)\n",
+       rank, (long)local_time, offset);
     fflush(stdout);
+
 
     if(rank==0){
     
-        long *times = malloc(sizeof(long)*size);
+        long times[size];
         times[0] = (long)local_time;
         for(i=1;i<size;i++){
             MPI_Status st;
@@ -59,7 +58,7 @@ int main(int argc,char** argv){
         }
 
        
-        free(times);
+     
     } else {
     
         long lt = (long)local_time;
